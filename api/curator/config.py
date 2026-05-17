@@ -43,7 +43,7 @@ class Settings:
             apollo_api_key=os.environ.get("APOLLO_API_KEY"),
             enricher_order=[
                 p.strip()
-                for p in os.environ.get("CURATOR_ENRICHERS", "heuristic").split(",")
+                for p in os.environ.get("CURATOR_ENRICHERS", "agent_enricher").split(",")
                 if p.strip()
             ],
             notion_request_delay_ms=int(os.environ.get("CURATOR_NOTION_DELAY_MS", "350")),

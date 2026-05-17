@@ -30,16 +30,22 @@ uvicorn curator.api.main:app --reload   # http://localhost:8000/docs
 curator <event-url>
 ```
 
-The worker hits `POST /events/ingest` then paginates `GET /events/{event_id}/companies` — keep those response shapes stable (see `api/schemas.py`). Other GET endpoints (`/events`, `/events/{id}`, `/health`) are diagnostic.
+The worker hits `POST /events/ingest` then paginates `GET /events/{event_id}/companies` — keep those response shapes stable (see `api/schemas.py`). `POST /events/ingest` now also runs people enrichment best-effort (parallel, capped at 5 concurrent; cached globally by `name_normalized`), so `GET /events/{event_id}/companies/{name_normalized}/contact` typically returns `status: "enriched"` straight after ingest with no extra round trip. `POST /events/{event_id}/companies/{name_normalized}/contact/enrich` remains as a fallback/retry path for companies the ingest-time pass skipped or failed on (pass `{"force": true}` to bypass cache). Other GET endpoints (`/events`, `/events/{id}`, `/health`) are diagnostic.
 
 ## Environment (`.env`, see `.env.example`)
 
 - `FIRECRAWL_API_KEY` — required for the LLM-backed discovery path.
 - `ANTHROPIC_API_KEY` — required for `website_llm` enrichment and people enrichment LLM calls.
 - `APOLLO_API_KEY` — required for `people_enrichment.apollo`.
-- `CURATOR_ENRICHERS` — comma-separated enricher order (default `heuristic`). Add `website_llm` to enable LLM enrichment.
+- `CURATOR_ENRICHERS` — comma-separated enricher order. Default `agent_enricher` (requires the Claude Code CLI to be installed and logged in — see `claude_agent_sdk`). Other choices: `heuristic`, `website_llm`, `apollo`.
 - `CURATOR_DB` — sqlite path (default `api/data/curator.db`).
 - `CURATOR_NOTION_DELAY_MS` — pacing for the Notion-facing select option list (default 350).
+
+To wipe enrichment caches (e.g. after changing the prompt or schema):
+
+```shell
+sqlite3 api/data/curator.db "DELETE FROM enrichment_cache;"
+```
 
 ## Contract with the worker
 

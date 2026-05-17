@@ -73,8 +73,8 @@ def upsert_event_company(
             website, industry, size_bucket, wealth_tier, priority, score,
             hq_city, hq_country, notes_appendix, extraction_confidence,
             extras_json, enrichment_sources_json, raw_payload_json,
-            source_url, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            source_url, gmv_usd, gmv_confidence, gmv_note, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(event_id, name_normalized) DO UPDATE SET
             display_name = excluded.display_name,
             booth = excluded.booth,
@@ -93,6 +93,9 @@ def upsert_event_company(
             enrichment_sources_json = excluded.enrichment_sources_json,
             raw_payload_json = excluded.raw_payload_json,
             source_url = excluded.source_url,
+            gmv_usd = excluded.gmv_usd,
+            gmv_confidence = excluded.gmv_confidence,
+            gmv_note = excluded.gmv_note,
             updated_at = excluded.updated_at
         """,
         (
@@ -117,6 +120,9 @@ def upsert_event_company(
             else None,
             json.dumps(raw.raw_payload, ensure_ascii=False) if raw.raw_payload else None,
             raw.source_url,
+            company.gmv_usd,
+            company.gmv_confidence,
+            company.gmv_note,
             _now_iso(),
         ),
     )

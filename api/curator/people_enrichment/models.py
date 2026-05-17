@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 Confidence = Literal["high", "medium", "low"]
-Provider = Literal["apollo", "anthropic"]
+Provider = Literal["apollo", "claude"]
 
 
 class ResearchResult(BaseModel):

@@ -38,6 +38,9 @@ class Company(BaseModel):
     enrichment_sources: dict[str, Any] | None = None
     raw_payload: dict[str, Any] | None = None
     source_url: str | None = None
+    gmv_usd: int | None = None
+    gmv_confidence: Literal["high", "medium", "low"] | None = None
+    gmv_note: str | None = None
     updated_at: str
 
 
@@ -92,14 +95,22 @@ class ContactEnrichRequest(BaseModel):
 
 
 class Contact(BaseModel):
-    event_id: int
+    """Contact lookup response.
+
+    Invariant: when `status == "enriched"`, `confidence`, `provider`, and
+    `enriched_at` are non-null; person fields may still be null if the
+    underlying enrichment turned up nothing. When `status == "not_enriched"`,
+    every optional field is null and `sources` is empty.
+    """
+
     name_normalized: str
+    status: Literal["enriched", "not_enriched"]
     person_name: str | None = None
     title: str | None = None
     email: str | None = None
     phone: str | None = None
     sources: list[str] = []
-    confidence: Literal["high", "medium", "low"]
+    confidence: Literal["high", "medium", "low"] | None = None
     reasoning: str | None = None
-    provider: Literal["apollo", "anthropic"] | None = None
-    enriched_at: str
+    provider: Literal["apollo", "claude"] | None = None
+    enriched_at: str | None = None

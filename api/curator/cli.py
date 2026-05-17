@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from datetime import date
 from pathlib import Path
@@ -44,13 +45,17 @@ def build_parser() -> argparse.ArgumentParser:
     ingest.add_argument("--output", type=Path, help="Output path when --sink=csv.")
     ingest.add_argument(
         "--enrichers",
-        help="Override CURATOR_ENRICHERS, comma-separated. Default: heuristic.",
+        help=(
+            "Override CURATOR_ENRICHERS, comma-separated. Choices: "
+            "agent_enricher (default; requires Claude Code CLI), heuristic, "
+            "website_llm, apollo."
+        ),
     )
     ingest.add_argument("--limit", type=int, help="Process at most N exhibitors (testing).")
     ingest.add_argument(
         "--force-refresh",
         action="store_true",
-        help="Bypass discovery cache (resolver + firecrawl_llm).",
+        help="Bypass discovery + agent_enricher caches; refreshed results are still written through.",
     )
     ingest.add_argument(
         "--no-resolve",
@@ -100,6 +105,11 @@ def cmd_serve(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(levelname)s %(name)s: %(message)s",
+        stream=sys.stderr,
+    )
     parser = build_parser()
     args = parser.parse_args()
     if args.command == "ingest":

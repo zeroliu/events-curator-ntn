@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import logging
 import sys
 from pathlib import Path
 
@@ -11,6 +12,8 @@ from curator.enrichment.overlays import select_overlay
 from curator.enrichment.pipeline import build_default_enrichers, run_enrichers
 from curator.models import EventHints, NotionRow
 from curator.sinks.base import Sink, SinkResult
+
+log = logging.getLogger(__name__)
 
 
 def _build_sink(args: argparse.Namespace, settings: Settings, conference: str | None) -> Sink:
@@ -64,7 +67,23 @@ def run_ingest(args: argparse.Namespace, settings: Settings) -> int:
     if args.limit:
         exhibitors = exhibitors[: args.limit]
 
-    enrichers = build_default_enrichers(settings.enricher_order)
+    prefetched_agent: dict[str, dict] = {}
+    if "agent_enricher" in settings.enricher_order:
+        from curator.enrichment.agent_enricher import run_prefetch_sync
+
+        try:
+            prefetched_agent = run_prefetch_sync(
+                list(exhibitors),
+                settings,
+                force_refresh=getattr(args, "force_refresh", False),
+            )
+        except Exception as exc:
+            log.warning(
+                "[agent_enricher] prefetch failed, continuing without it: %s", exc
+            )
+    enrichers = build_default_enrichers(
+        settings.enricher_order, prefetched_agent=prefetched_agent
+    )
     overlay = select_overlay(source_url=args.url, override=args.overlay)
     overlay_id = getattr(overlay, "provider_id", None) if overlay else None
     # Conference defaults to the event name; --conference is an override.
@@ -94,4 +113,24 @@ def run_ingest(args: argparse.Namespace, settings: Settings) -> int:
         f"updated={result.updated} skipped={result.skipped}",
         file=sys.stderr,
     )
+
+    if args.sink == "sqlite":
+        from curator.people_enrichment import prefetch_and_store_contacts
+        from curator.storage import db as storage_db
+
+        conn = storage_db.connect(settings.db_path)
+        try:
+            event_row = conn.execute(
+                "SELECT id FROM events WHERE platform = ? AND platform_event_id = ?",
+                (meta.platform, meta.platform_event_id),
+            ).fetchone()
+            event_id = int(event_row["id"]) if event_row else 0
+        finally:
+            conn.close()
+        if event_id:
+            people_inputs = [
+                (r.company.name_normalized, r.company.display_name) for r in rows
+            ]
+            prefetch_and_store_contacts(event_id, people_inputs, settings)
+
     return 0

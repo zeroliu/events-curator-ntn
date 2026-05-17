@@ -18,6 +18,7 @@ from curator.api.schemas import (
 )
 from curator.api.service import ingest_event
 from curator.config import Settings
+from curator.enrichment.pipeline import normalize_name
 from curator.people_enrichment import enrich_company_contact
 from curator.storage import db as storage_db
 from curator.storage import repo
@@ -28,12 +29,12 @@ def get_settings() -> Settings:
 
 
 app = FastAPI(
-    title="Moscone Events Curator API",
+    title="Events Curator API",
     version="0.1.0",
     description=(
         "Read-only API the Notion ntn worker pulls from. Ingestion endpoint runs "
         "the discovery + enrichment pipeline against an event URL and stores results "
-        "in SQLite; GET endpoints expose those records as snake_case JSON."
+        "in SQLite. GET endpoints expose those records as snake_case JSON."
     ),
 )
 
@@ -100,10 +101,12 @@ def list_event_companies(
         conn.close()
 
 
-def _contact_from_row(row: dict) -> Contact:
+def _contact_from_row(name_normalized: str, row: dict | None) -> Contact:
+    if row is None:
+        return Contact(name_normalized=normalize_name(name_normalized), status="not_enriched")
     return Contact(
-        event_id=row["event_id"],
         name_normalized=row["name_normalized"],
+        status="enriched",
         person_name=row.get("person_name"),
         title=row.get("title"),
         email=row.get("email"),
@@ -127,16 +130,18 @@ def get_company_contact(
 ) -> Contact:
     conn = storage_db.connect(settings.db_path)
     try:
+        if repo.get_event(conn, event_id) is None:
+            raise HTTPException(status_code=404, detail="event not found")
+        if repo.get_company(conn, event_id, name_normalized) is None:
+            raise HTTPException(status_code=404, detail="company not found")
         row = repo.get_contact(conn, event_id, name_normalized)
-        if row is None:
-            raise HTTPException(status_code=404, detail="contact not enriched yet")
-        return _contact_from_row(row)
+        return _contact_from_row(name_normalized, row)
     finally:
         conn.close()
 
 
 @app.post(
-    "/events/{event_id}/companies/{name_normalized}/contacts:enrich",
+    "/events/{event_id}/companies/{name_normalized}/contact/enrich",
     response_model=Contact,
 )
 async def enrich_company_contact_route(
@@ -158,7 +163,7 @@ async def enrich_company_contact_route(
         if not force:
             cached = repo.get_contact(conn, event_id, name_normalized)
             if cached is not None:
-                return _contact_from_row(cached)
+                return _contact_from_row(name_normalized, cached)
 
         display_name = company.get("display_name") or name_normalized
     finally:
@@ -177,7 +182,7 @@ async def enrich_company_contact_route(
         conn.close()
     if row is None:
         raise HTTPException(status_code=500, detail="contact vanished after upsert")
-    return _contact_from_row(row)
+    return _contact_from_row(name_normalized, row)
 
 
 @app.post("/events/ingest", response_model=IngestResponse)

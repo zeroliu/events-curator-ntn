@@ -66,7 +66,7 @@ async def claude_research(company_name: str) -> ResearchResult:
         return ResearchResult(
             confidence="low",
             reasoning=f"No parseable JSON in LLM response for {company_name}.",
-            provider="anthropic",
+            provider="claude",
         )
 
     return _build_result(payload)
@@ -113,7 +113,7 @@ def _build_result(parsed: dict[str, Any]) -> ResearchResult:
         sources=sources,
         confidence=confidence,
         reasoning=parsed.get("reasoning") if isinstance(parsed.get("reasoning"), str) else "",
-        provider="anthropic",
+        provider="claude",
     )
 
 

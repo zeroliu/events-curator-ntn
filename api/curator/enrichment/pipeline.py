@@ -14,7 +14,11 @@ def normalize_name(name: str) -> str:
     return _NORMALIZE_RE.sub(" ", name.lower()).strip()
 
 
-def build_default_enrichers(provider_ids: list[str]) -> list[CompanyEnricher]:
+def build_default_enrichers(
+    provider_ids: list[str],
+    *,
+    prefetched_agent: dict[str, dict] | None = None,
+) -> list[CompanyEnricher]:
     enrichers: list[CompanyEnricher] = []
     for pid in provider_ids:
         if pid == "heuristic":
@@ -27,6 +31,10 @@ def build_default_enrichers(provider_ids: list[str]) -> list[CompanyEnricher]:
             from curator.enrichment.apollo import ApolloEnricher
 
             enrichers.append(ApolloEnricher())
+        elif pid == "agent_enricher":
+            from curator.enrichment.agent_enricher import AgentEnricher
+
+            enrichers.append(AgentEnricher(prefetched_agent or {}))
         else:
             raise ValueError(f"unknown enricher id: {pid}")
     return enrichers
@@ -43,6 +51,9 @@ _PROFILE_FIELDS = {
     "description",
     "notes_appendix",
     "score",
+    "gmv_usd",
+    "gmv_confidence",
+    "gmv_note",
 }
 
 

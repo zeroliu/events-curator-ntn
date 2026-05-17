@@ -32,6 +32,9 @@ CREATE TABLE IF NOT EXISTS event_companies (
     enrichment_sources_json TEXT,
     raw_payload_json TEXT,
     source_url TEXT,
+    gmv_usd INTEGER,
+    gmv_confidence TEXT,
+    gmv_note TEXT,
     updated_at TEXT NOT NULL,
     PRIMARY KEY (event_id, name_normalized)
 );

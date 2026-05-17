@@ -1,6 +1,7 @@
 """Service layer — pipeline invocation shared between CLI and HTTP API."""
 from __future__ import annotations
 
+import logging
 import sys
 from dataclasses import dataclass
 from datetime import date
@@ -8,10 +9,15 @@ from datetime import date
 from curator.config import Settings
 from curator.discovery.base import resolve
 from curator.discovery.resolver import resolve_directory_url
+from curator.enrichment.agent_enricher import run_prefetch_sync as run_agent_prefetch_sync
 from curator.enrichment.overlays import select_overlay
 from curator.enrichment.pipeline import build_default_enrichers, run_enrichers
 from curator.models import EventHints, EventMeta, NotionRow
+from curator.people_enrichment import prefetch_and_store_contacts
 from curator.sinks.sqlite_sink import SQLiteSink
+from curator.storage import db as storage_db
+
+log = logging.getLogger(__name__)
 
 
 @dataclass
@@ -69,7 +75,20 @@ def ingest_event(
         exhibitors = exhibitors[:limit]
 
     enricher_ids = enrichers or settings.enricher_order
-    enricher_chain = build_default_enrichers(enricher_ids)
+    prefetched_agent: dict[str, dict] = {}
+    if "agent_enricher" in enricher_ids:
+        try:
+            prefetched_agent = run_agent_prefetch_sync(
+                list(exhibitors), settings, force_refresh=force_refresh
+            )
+        except Exception as exc:
+            # SDK auth/transport failures shouldn't 500 the ingest. AgentEnricher
+            # no-ops on missing keys, so per-exhibitor enrichment degrades to the
+            # other configured enrichers (or returns minimal records).
+            log.warning("[agent_enricher] prefetch failed, continuing without it: %s", exc)
+    enricher_chain = build_default_enrichers(
+        enricher_ids, prefetched_agent=prefetched_agent
+    )
     overlay_obj = select_overlay(source_url=url, override=overlay)
 
     final_conference = conference or meta.name
@@ -89,17 +108,22 @@ def ingest_event(
     result = sink.write(meta, rows)
 
     # Sink writes rows then returns counts; query the actual event id.
-    from curator.storage import db as storage_db
-
     conn = storage_db.connect(settings.db_path)
     try:
-        row = conn.execute(
+        event_row = conn.execute(
             "SELECT id FROM events WHERE platform = ? AND platform_event_id = ?",
             (meta.platform, meta.platform_event_id),
         ).fetchone()
-        event_id = int(row["id"]) if row else 0
+        event_id = int(event_row["id"]) if event_row else 0
     finally:
         conn.close()
+
+    if event_id:
+        people_inputs = [
+            (notion_row.company.name_normalized, notion_row.company.display_name)
+            for notion_row in rows
+        ]
+        prefetch_and_store_contacts(event_id, people_inputs, settings)
 
     return IngestOutcome(
         event=meta,

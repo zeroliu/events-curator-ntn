@@ -6,6 +6,9 @@ Apollo (paid, structured) first, Claude Agent SDK with WebSearch as fallback.
 from __future__ import annotations
 
 from curator.people_enrichment.models import ResearchResult
-from curator.people_enrichment.pipeline import enrich_company_contact
+from curator.people_enrichment.pipeline import (
+    enrich_company_contact,
+    prefetch_and_store_contacts,
+)
 
-__all__ = ["ResearchResult", "enrich_company_contact"]
+__all__ = ["ResearchResult", "enrich_company_contact", "prefetch_and_store_contacts"]

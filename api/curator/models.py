@@ -36,6 +36,8 @@ SizeBucket = Literal[
     "1-10", "11-50", "51-200", "201-1000", "1001-5000", "5001+", "unknown"
 ]
 
+GMVConfidence = Literal["high", "medium", "low"]
+
 
 @dataclass
 class EventHints:
@@ -86,6 +88,9 @@ class CompanyProfile:
     description: str | None = None
     notes_appendix: str | None = None  # tabmac-flavored extras from overlays
     score: int = 0
+    gmv_usd: int | None = None
+    gmv_confidence: GMVConfidence | None = None
+    gmv_note: str | None = None
     enrichment_sources: dict[str, str] = field(default_factory=dict)
     extras: dict[str, Any] = field(default_factory=dict)
     raw_exhibitor: RawExhibitor | None = None
