@@ -49,11 +49,11 @@ function render(): void {
 			}`;
 			break;
 		case "found": {
-			const { event, count, adapter } = state.data;
+			const { event, count } = state.data;
 			statusEl.classList.add("ok");
 			statusEl.innerHTML = `<div class="title">Found ${count} ${
 				count === 1 ? "company" : "companies"
-			}</div><div class="detail">${escapeHtml(event.name)} · adapter: ${escapeHtml(adapter)}</div>`;
+			}</div><div class="detail">${escapeHtml(event.name)}</div>`;
 			ingestBtn.hidden = false;
 			ingestBtn.textContent = "Ingest to Notion";
 			break;
