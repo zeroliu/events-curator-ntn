@@ -1,0 +1,26 @@
+# Environment
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.venv/
+venv/
+.eggs/
+build/
+dist/
+
+# Local data / runtime
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Tooling
+.gstack/
+.DS_Store
+.idea/
+.vscode/

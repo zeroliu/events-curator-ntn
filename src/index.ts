@@ -256,25 +256,42 @@ function buildEmptyFieldUpdates(
 	return out;
 }
 
-async function findCompanyByTitle(
+type ExistingRow = { id: string; properties: Record<string, NotionProp> };
+
+// Paginate the entire CRM once and index rows by their title text. Replaces the
+// previous per-company `dataSources.query` filter, which made the tool linear in
+// the company count and easily exceeded the agent's tool-call budget.
+async function loadExistingByTitle(
 	notion: NotionClient,
 	dataSourceId: string,
 	titleCol: string,
-	title: string,
-): Promise<{ id: string; properties: Record<string, NotionProp> } | null> {
-	const res = (await notion.dataSources.query({
-		data_source_id: dataSourceId,
-		filter: {
-			property: titleCol,
-			title: { equals: title },
-		},
-		page_size: 1,
-	} as never)) as {
-		results: Array<{ id: string; properties?: Record<string, NotionProp> }>;
-	};
-	const hit = res.results[0];
-	if (!hit) return null;
-	return { id: hit.id, properties: hit.properties ?? {} };
+): Promise<Map<string, ExistingRow>> {
+	const byTitle = new Map<string, ExistingRow>();
+	let startCursor: string | undefined;
+	while (true) {
+		const res = (await notion.dataSources.query({
+			data_source_id: dataSourceId,
+			page_size: 100,
+			start_cursor: startCursor,
+		} as never)) as {
+			results: Array<{ id: string; properties?: Record<string, NotionProp> }>;
+			next_cursor: string | null;
+			has_more: boolean;
+		};
+		for (const row of res.results) {
+			const props = row.properties ?? {};
+			const titleProp = props[titleCol];
+			const arr =
+				(titleProp?.title as Array<{ plain_text?: string }> | undefined) ?? [];
+			const title = arr.map((t) => t.plain_text ?? "").join("");
+			if (!title) continue;
+			// Preserve first-wins to match the old `page_size: 1` behavior on duplicates.
+			if (!byTitle.has(title)) byTitle.set(title, { id: row.id, properties: props });
+		}
+		if (!res.has_more || !res.next_cursor) break;
+		startCursor = res.next_cursor;
+	}
+	return byTitle;
 }
 
 // Discover the CRM schema: title column name + the set of all column names.
@@ -343,18 +360,25 @@ worker.tool("ingestEvent", {
 			if (page.items.length === 0 || offset >= page.total) break;
 		}
 
+		if (companies.length === 0) {
+			return {
+				eventName: ingest.event.name,
+				eventSourceUrl: ingest.event.source_url,
+				companiesFound: 0,
+				companiesCreated: 0,
+				companiesUpdated: 0,
+				companiesSkipped: 0,
+			};
+		}
+
 		const { titleCol, knownColumns } = await discoverSchema(notion, dataSourceId);
+		const existingByTitle = await loadExistingByTitle(notion, dataSourceId, titleCol);
 
 		let created = 0;
 		let updated = 0;
 		let skipped = 0;
 		for (const c of companies) {
-			const existing = await findCompanyByTitle(
-				notion,
-				dataSourceId,
-				titleCol,
-				c.display_name,
-			);
+			const existing = existingByTitle.get(c.display_name);
 			if (existing) {
 				const payload = buildEmptyFieldUpdates(
 					existing.properties,
