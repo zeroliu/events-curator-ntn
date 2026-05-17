@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Show Me Math — the agentic event-ROI cheatsheet</title>
+  <meta name="description" content="Paste any event URL. Show Me Math maps the attending companies, surfaces likely decision-makers, and estimates the marketing value — in seconds." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%232b59ff'/%3E%3Ctext x='8' y='12' font-family='monospace' font-size='10' font-weight='900' text-anchor='middle' fill='white'%3E%CE%A3%3C/text%3E%3C/svg%3E" />
+
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+
+  <style>
+    :root {
+      --bg: #fafaf7;
+      --ink: #0a0a0a;
+      --muted: #6b6b66;
+      --rule: #e7e6df;
+      --accent: #2b59ff;
+      --accent-ink: #ffffff;
+      --accent-hover: #1f46d6;
+      --shadow: 0 1px 0 rgba(10, 10, 10, 0.04), 0 12px 32px -16px rgba(10, 10, 10, 0.18);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Subtle plus-mark grid in the background — barely visible, math-y vibes. */
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle at 1px 1px, rgba(10, 10, 10, 0.07) 1px, transparent 0);
+      background-size: 28px 28px;
+      mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 70%);
+      -webkit-mask-image: radial-gradient(ellipse at center, rgba(0, 0, 0, 0.6), transparent 70%);
+      z-index: 0;
+    }
+
+    main {
+      flex: 1;
+      position: relative;
+      z-index: 1;
+      width: 100%;
+      max-width: 720px;
+      margin: 0 auto;
+      padding: clamp(48px, 10vw, 96px) clamp(24px, 6vw, 48px) clamp(32px, 6vw, 48px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: clamp(28px, 5vw, 44px);
+    }
+
+    .overline {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .overline::before {
+      content: "";
+      width: 18px;
+      height: 1.5px;
+      background: var(--accent);
+      display: inline-block;
+    }
+
+    .logo {
+      font-family: "Press Start 2P", ui-monospace, "Courier New", monospace;
+      font-size: clamp(36px, 9vw, 88px);
+      line-height: 1.05;
+      color: var(--ink);
+      margin: 0;
+      letter-spacing: -0.01em;
+      word-spacing: 0.1em;
+    }
+    .logo .accent {
+      color: var(--accent);
+      display: inline-block;
+      position: relative;
+    }
+    .logo .accent::after {
+      content: "_";
+      color: var(--accent);
+      margin-left: 0.1em;
+      animation: blink 1.1s steps(1, end) infinite;
+    }
+    @keyframes blink {
+      50% { opacity: 0; }
+    }
+
+    .lede {
+      font-size: clamp(17px, 2.1vw, 20px);
+      line-height: 1.5;
+      color: var(--ink);
+      max-width: 56ch;
+      margin: 0;
+    }
+    .lede strong {
+      font-weight: 600;
+      background: linear-gradient(180deg, transparent 62%, rgba(43, 89, 255, 0.18) 62%);
+      padding: 0 2px;
+    }
+
+    .ctas {
+      display: flex;
+      flex-direction: row;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 12px 14px;
+    }
+
+    .btn {
+      --btn-pad-y: 14px;
+      --btn-pad-x: 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: var(--btn-pad-y) var(--btn-pad-x);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: -0.005em;
+      text-decoration: none;
+      line-height: 1;
+      transition: transform 160ms ease, box-shadow 160ms ease, background 160ms ease, color 160ms ease, border-color 160ms ease;
+      will-change: transform;
+    }
+    .btn:focus-visible {
+      outline: 2px solid var(--accent);
+      outline-offset: 3px;
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: var(--accent-ink);
+      box-shadow: var(--shadow);
+    }
+    .btn-primary:hover { background: var(--accent-hover); transform: translateY(-1px); }
+    .btn-primary .arrow { transition: transform 200ms ease; }
+    .btn-primary:hover .arrow { transform: translateX(3px); }
+
+    .btn-chrome {
+      background: #ffffff;
+      color: var(--ink);
+      border: 1px solid var(--rule);
+      box-shadow: var(--shadow);
+    }
+    .btn-chrome:hover { border-color: #cfcec5; transform: translateY(-1px); }
+    .btn-chrome .chrome-mark {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+    }
+
+    .btn-text {
+      color: var(--ink);
+      padding: var(--btn-pad-y) 6px;
+      position: relative;
+    }
+    .btn-text::after {
+      content: "";
+      position: absolute;
+      left: 6px;
+      right: 6px;
+      bottom: 10px;
+      height: 1px;
+      background: currentColor;
+      opacity: 0.35;
+      transition: opacity 160ms ease;
+    }
+    .btn-text:hover::after { opacity: 1; }
+    .btn-text .arrow { transition: transform 200ms ease; }
+    .btn-text:hover .arrow { transform: translateX(3px); }
+
+    .receipt {
+      margin-top: 4px;
+      border: 1px dashed var(--rule);
+      border-radius: 8px;
+      padding: 14px 18px;
+      font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.55);
+      max-width: 420px;
+    }
+    .receipt b { color: var(--ink); font-weight: 600; }
+    .receipt .row { display: flex; justify-content: space-between; gap: 16px; }
+    .receipt .sum { border-top: 1px solid var(--rule); margin-top: 6px; padding-top: 6px; color: var(--ink); font-weight: 600; }
+
+    footer {
+      position: relative;
+      z-index: 1;
+      max-width: 720px;
+      margin: 0 auto;
+      width: 100%;
+      padding: 24px clamp(24px, 6vw, 48px) 32px;
+      font-size: 12px;
+      color: var(--muted);
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    footer a { color: inherit; text-decoration: none; border-bottom: 1px solid var(--rule); }
+    footer a:hover { color: var(--ink); }
+
+    @media (max-width: 520px) {
+      .ctas { flex-direction: column; align-items: stretch; }
+      .btn { justify-content: center; }
+      .btn-text { justify-content: flex-start; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <main>
+    <span class="overline">The agentic event-ROI cheatsheet</span>
+
+    <h1 class="logo" aria-label="Show Me Math">
+      SHOW ME<br />
+      <span class="accent">MATH</span>
+    </h1>
+
+    <p class="lede">
+      Paste any event URL. Our agentic system maps the <strong>attending companies</strong>,
+      surfaces <strong>likely decision-makers</strong>, and estimates the
+      <strong>marketing value</strong> — in seconds, not hours.
+    </p>
+
+    <div class="receipt" aria-hidden="true">
+      <div class="row"><span>Companies identified</span><b>142</b></div>
+      <div class="row"><span>Decision-makers surfaced</span><b>318</b></div>
+      <div class="row"><span>Manual hours saved</span><b>~14h</b></div>
+      <div class="row sum"><span>Est. marketing value</span><b>$1.2M</b></div>
+    </div>
+
+    <div class="ctas">
+      <a class="btn btn-primary"
+         href="https://www.notion.so/agent/3625f909b238806495450092ca8f5027?wfv=chat"
+         target="_blank" rel="noopener">
+        Run the Agent
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
+
+      <a class="btn btn-chrome" href="#" aria-label="Add Show Me Math to Chrome">
+        <svg class="chrome-mark" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="24" cy="24" r="22" fill="#ffffff" stroke="#e7e6df" stroke-width="1"/>
+          <path d="M24 4a20 20 0 0 1 17.32 10H24a10 10 0 0 0-9.16 6L6.68 6.66A19.92 19.92 0 0 1 24 4z" fill="#ea4335"/>
+          <path d="M6.68 6.66 14.84 20a10 10 0 0 0 6.6 13.84L13.6 43.1A20 20 0 0 1 6.68 6.66z" fill="#fbbc05"/>
+          <path d="M41.32 14a20 20 0 0 1-27.72 29.1L21.44 33.84A10 10 0 0 0 32.84 20z" fill="#34a853"/>
+          <circle cx="24" cy="24" r="6.5" fill="#4285f4"/>
+        </svg>
+        Add to Chrome
+      </a>
+
+      <a class="btn btn-text"
+         href="https://www.notion.so/73b5f909b238838a970301065559ac4f?v=1835f909b2388293ac74886aeb199bcd"
+         target="_blank" rel="noopener">
+        See a sample report
+        <span class="arrow" aria-hidden="true">→</span>
+      </a>
+    </div>
+  </main>
+
+  <footer>
+    <span>Built on the events-curator pipeline.</span>
+    <span>© 2026 Show Me Math</span>
+  </footer>
+
+</body>
+</html>
