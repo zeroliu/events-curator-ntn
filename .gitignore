@@ -1,6 +1,7 @@
-.env
-.env.*
-dist/
-node_modules/
-workers.*.json
-workers.json
+# macOS / editors
+.DS_Store
+.idea/
+.vscode/
+
+# Tooling
+.gstack/
