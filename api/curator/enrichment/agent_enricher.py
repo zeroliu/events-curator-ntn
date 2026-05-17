@@ -1,6 +1,6 @@
 """Claude Agent SDK enricher.
 
-Replaces the regex-based heuristic with `claude-sonnet-4-6` + WebSearch.
+Replaces the regex-based heuristic with `claude-haiku-4-5` + WebSearch.
 Companies are pre-fetched in batches of 20 by `prefetch_agent_results`; the
 sync `AgentEnricher.enrich` is a pure dict lookup so it slots into the
 existing per-exhibitor `run_enrichers` loop without touching merge logic.
@@ -41,7 +41,7 @@ log = logging.getLogger(__name__)
 
 BATCH_SIZE = 20
 CACHE_PROVIDER = "agent_enricher"
-MODEL_ID = "claude-sonnet-4-6"
+MODEL_ID = "claude-haiku-4-5"
 
 _INDUSTRY_VALUES = list(get_args(NotionIndustry))
 _SIZE_VALUES = list(get_args(SizeBucket))
