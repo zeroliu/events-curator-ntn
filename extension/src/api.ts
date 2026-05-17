@@ -18,7 +18,7 @@ export async function discover(url: string): Promise<DiscoverResult> {
 		res = await fetch(`${base}/events/discover`, {
 			method: "POST",
 			headers: { "Content-Type": "application/json" },
-			body: JSON.stringify({ url }),
+			body: JSON.stringify({ url, resolve_directory: true }),
 		});
 	} catch (e) {
 		throw new Error(`Curator API unreachable: ${(e as Error).message}`);
