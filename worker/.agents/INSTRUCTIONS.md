@@ -24,8 +24,12 @@
 | Priority | select | normalized curator priority |
 | Conference / Trigger | select | curator `event.name` |
 | Est. GMV | number | curator `gmv_usd` |
+| Contact Name | rich_text | curator contact `person_name` |
+| Email | email | curator contact `email` |
+| Phone | phone_number | curator contact `phone` |
+| Title | rich_text | curator contact `title` |
 
-All other CRM columns (Contact Name, Email, Notes, etc.) are human-only and never touched by the tool.
+Contact columns are filled from the curator's people enrichment via `POST /events/{id}/companies/{name_normalized}/contact/enrich` (cached by `name_normalized`; `force=false` returns the cached row when one exists). All other CRM columns (Notes, etc.) are human-only and never touched by the tool.
 
 **Environment variables (`.env`):**
 

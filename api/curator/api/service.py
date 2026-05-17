@@ -33,6 +33,47 @@ class IngestOutcome:
     was_resolved: bool
 
 
+@dataclass
+class DiscoverOutcome:
+    event: EventMeta
+    count: int
+    adapter: str
+    requested_url: str
+    resolved_url: str
+    was_resolved: bool
+
+
+def discover_event(
+    *,
+    url: str,
+    settings: Settings,
+    resolve_directory: bool = False,
+    force_refresh: bool = False,
+) -> DiscoverOutcome:
+    """Lightweight discovery: resolve adapter + fetch raw exhibitors. No
+    enrichment, no DB write, no people enrichment. Used by the Chrome
+    extension to surface a company count before the user commits to a
+    full ingest."""
+    hints = EventHints(conference=None, event_name=None, event_date=None, venue=None, overlay=None)
+    if resolve_directory:
+        resolution = resolve_directory_url(url, settings, force_refresh=force_refresh)
+        fetch_url = resolution.resolved_url
+    else:
+        fetch_url = url
+
+    adapter = resolve(fetch_url)
+    meta, exhibitors = adapter.fetch(fetch_url, hints, force_refresh=force_refresh)
+
+    return DiscoverOutcome(
+        event=meta,
+        count=len(exhibitors),
+        adapter=adapter.platform_id,
+        requested_url=url,
+        resolved_url=fetch_url,
+        was_resolved=fetch_url != url,
+    )
+
+
 def ingest_event(
     *,
     url: str,

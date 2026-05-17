@@ -5,7 +5,7 @@
 
 import type { CapabilityContext } from "@notionhq/workers";
 
-import type { Company, EventSummary } from "./curator.js";
+import type { Company, Contact, EventSummary } from "./curator.js";
 import {
 	normalizeIndustryName,
 	normalizePriorityName,
@@ -17,6 +17,10 @@ const WEALTH_TIER_COL = "Wealth Tier";
 const PRIORITY_COL = "Priority";
 const CONFERENCE_COL = "Conference / Trigger";
 const GMV_COL = "Est. GMV";
+const CONTACT_NAME_COL = "Contact Name";
+const EMAIL_COL = "Email";
+const PHONE_COL = "Phone";
+const CONTACT_TITLE_COL = "Title";
 
 export type NotionClient = CapabilityContext["notion"];
 
@@ -67,6 +71,7 @@ function isEmpty(prop: NotionProp | undefined): boolean {
 function curatorMappedValues(
 	c: Company,
 	event: EventSummary,
+	contact: Contact | null,
 	titleCol: string,
 ): Record<string, unknown> {
 	const out: Record<string, unknown> = {
@@ -80,6 +85,14 @@ function curatorMappedValues(
 	if (priority) out[PRIORITY_COL] = { select: { name: priority } };
 	if (event.name) out[CONFERENCE_COL] = { select: { name: event.name } };
 	if (c.gmv_usd != null) out[GMV_COL] = { number: c.gmv_usd };
+	if (contact?.status === "enriched") {
+		if (contact.person_name)
+			out[CONTACT_NAME_COL] = { rich_text: [{ text: { content: contact.person_name } }] };
+		if (contact.email) out[EMAIL_COL] = { email: contact.email };
+		if (contact.phone) out[PHONE_COL] = { phone_number: contact.phone };
+		if (contact.title)
+			out[CONTACT_TITLE_COL] = { rich_text: [{ text: { content: contact.title } }] };
+	}
 	return out;
 }
 
@@ -89,10 +102,11 @@ function buildEmptyFieldUpdates(
 	existingProps: Record<string, NotionProp> | undefined,
 	c: Company,
 	event: EventSummary,
+	contact: Contact | null,
 	titleCol: string,
 ): Record<string, unknown> {
 	const props = existingProps ?? {};
-	const candidates = curatorMappedValues(c, event, titleCol);
+	const candidates = curatorMappedValues(c, event, contact, titleCol);
 	const out: Record<string, unknown> = {};
 	for (const [col, value] of Object.entries(candidates)) {
 		const existing = props[col];
@@ -106,10 +120,11 @@ function buildEmptyFieldUpdates(
 function buildCreateProperties(
 	c: Company,
 	event: EventSummary,
+	contact: Contact | null,
 	titleCol: string,
 	knownColumns: Set<string>,
 ): Record<string, unknown> {
-	const values = curatorMappedValues(c, event, titleCol);
+	const values = curatorMappedValues(c, event, contact, titleCol);
 	const out: Record<string, unknown> = {};
 	for (const [col, value] of Object.entries(values)) {
 		if (knownColumns.has(col)) out[col] = value;
@@ -182,10 +197,17 @@ export async function upsertCompany(
 	existing: ExistingRow | undefined,
 	c: Company,
 	event: EventSummary,
+	contact: Contact | null,
 	schema: CrmSchema,
 ): Promise<UpsertOutcome> {
 	if (existing) {
-		const payload = buildEmptyFieldUpdates(existing.properties, c, event, schema.titleCol);
+		const payload = buildEmptyFieldUpdates(
+			existing.properties,
+			c,
+			event,
+			contact,
+			schema.titleCol,
+		);
 		if (Object.keys(payload).length === 0) return "skipped";
 		await notion.pages.update({
 			page_id: existing.id,
@@ -195,7 +217,13 @@ export async function upsertCompany(
 	}
 	await notion.pages.create({
 		parent: { type: "data_source_id", data_source_id: dataSourceId },
-		properties: buildCreateProperties(c, event, schema.titleCol, schema.knownColumns),
+		properties: buildCreateProperties(
+			c,
+			event,
+			contact,
+			schema.titleCol,
+			schema.knownColumns,
+		),
 	} as never);
 	return "created";
 }

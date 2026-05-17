@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Events Curator</title>
+		<link rel="stylesheet" href="./styles.css" />
+	</head>
+	<body>
+		<main id="root">
+			<header>
+				<h1>Events Curator</h1>
+			</header>
+			<section id="url-row">
+				<div class="label">Current page</div>
+				<div id="current-url" class="url"></div>
+			</section>
+			<section id="status"></section>
+			<section id="actions">
+				<button id="check-btn" type="button">Check</button>
+				<button id="ingest-btn" type="button" hidden>Ingest to Notion</button>
+			</section>
+		</main>
+		<script type="module" src="./popup.ts"></script>
+	</body>
+</html>

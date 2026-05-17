@@ -4,6 +4,7 @@ from datetime import date
 
 from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.middleware.cors import CORSMiddleware
 
 load_dotenv()
 
@@ -12,11 +13,14 @@ from curator.api.schemas import (
     CompanyPage,
     Contact,
     ContactEnrichRequest,
+    DiscoverEvent,
+    DiscoverRequest,
+    DiscoverResponse,
     EventSummary,
     IngestRequest,
     IngestResponse,
 )
-from curator.api.service import ingest_event
+from curator.api.service import discover_event, ingest_event
 from curator.config import Settings
 from curator.enrichment.pipeline import normalize_name
 from curator.people_enrichment import enrich_company_contact
@@ -36,6 +40,13 @@ app = FastAPI(
         "the discovery + enrichment pipeline against an event URL and stores results "
         "in SQLite. GET endpoints expose those records as snake_case JSON."
     ),
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origin_regex=r"^(chrome-extension://.*|http://localhost(:\d+)?)$",
+    allow_methods=["GET", "POST"],
+    allow_headers=["*"],
 )
 
 
@@ -183,6 +194,52 @@ async def enrich_company_contact_route(
     if row is None:
         raise HTTPException(status_code=500, detail="contact vanished after upsert")
     return _contact_from_row(name_normalized, row)
+
+
+@app.post("/events/discover", response_model=DiscoverResponse)
+def discover(
+    request: DiscoverRequest, settings: Settings = Depends(get_settings)
+) -> DiscoverResponse:
+    try:
+        outcome = discover_event(
+            url=request.url,
+            settings=settings,
+            resolve_directory=request.resolve_directory,
+            force_refresh=request.force_refresh,
+        )
+    except (NotImplementedError, RuntimeError) as exc:
+        raise HTTPException(
+            status_code=404,
+            detail={"code": "not_event_site", "message": str(exc)},
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
+    if outcome.count == 0:
+        raise HTTPException(
+            status_code=404,
+            detail={
+                "code": "not_event_site",
+                "message": f"no companies discovered via {outcome.adapter}",
+            },
+        )
+
+    return DiscoverResponse(
+        event=DiscoverEvent(
+            name=outcome.event.name,
+            platform=outcome.event.platform,
+            platform_event_id=outcome.event.platform_event_id,
+            source_url=outcome.event.source_url,
+            venue=outcome.event.venue,
+            start_date=outcome.event.start_date.isoformat() if outcome.event.start_date else None,
+            end_date=outcome.event.end_date.isoformat() if outcome.event.end_date else None,
+        ),
+        count=outcome.count,
+        adapter=outcome.adapter,
+        requested_url=outcome.requested_url,
+        resolved_url=outcome.resolved_url,
+        was_resolved=outcome.was_resolved,
+    )
 
 
 @app.post("/events/ingest", response_model=IngestResponse)

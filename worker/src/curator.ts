@@ -56,6 +56,15 @@ export type IngestResponse = {
 	skipped: number;
 };
 
+export type Contact = {
+	name_normalized: string;
+	status: "enriched" | "not_enriched";
+	person_name: string | null;
+	title: string | null;
+	email: string | null;
+	phone: string | null;
+};
+
 function requireCuratorBaseUrl(): string {
 	if (!CURATOR_BASE_URL) {
 		throw new Error("CURATOR_BASE_URL env var is not set");
@@ -84,6 +93,19 @@ export function ingestEvent(url: string): Promise<IngestResponse> {
 		method: "POST",
 		body: JSON.stringify({ url }),
 	});
+}
+
+export function enrichCompanyContact(
+	eventId: number,
+	nameNormalized: string,
+): Promise<Contact> {
+	return curatorFetch<Contact>(
+		`/events/${eventId}/companies/${encodeURIComponent(nameNormalized)}/contact/enrich`,
+		{
+			method: "POST",
+			body: JSON.stringify({}),
+		},
+	);
 }
 
 export async function fetchAllCompanies(eventId: number): Promise<Company[]> {

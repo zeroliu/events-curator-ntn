@@ -87,6 +87,41 @@ class IngestResponse(BaseModel):
     was_resolved: bool
 
 
+class DiscoverRequest(BaseModel):
+    url: str
+    resolve_directory: bool = Field(
+        default=False,
+        description=(
+            "If true, follow a marketing/landing page to its canonical "
+            "exhibitor list before counting. Off by default to keep the "
+            "discover call cheap (no Firecrawl spend on every popup open)."
+        ),
+    )
+    force_refresh: bool = Field(
+        default=False,
+        description="Bypass resolver + adapter caches.",
+    )
+
+
+class DiscoverEvent(BaseModel):
+    name: str
+    platform: str
+    platform_event_id: str
+    source_url: str
+    venue: str | None = None
+    start_date: str | None = None
+    end_date: str | None = None
+
+
+class DiscoverResponse(BaseModel):
+    event: DiscoverEvent
+    count: int
+    adapter: str
+    requested_url: str
+    resolved_url: str
+    was_resolved: bool
+
+
 class ContactEnrichRequest(BaseModel):
     force: bool = Field(
         default=False,

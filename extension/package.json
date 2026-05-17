@@ -1,0 +1,18 @@
+{
+	"name": "events-curator-extension",
+	"version": "0.1.0",
+	"private": true,
+	"description": "Chrome extension: check whether the current tab is an event site, then ingest companies into the Notion Companies CRM via the events-curator worker webhook.",
+	"type": "module",
+	"scripts": {
+		"dev": "vite",
+		"build": "tsc --noEmit && vite build",
+		"check": "tsc --noEmit"
+	},
+	"devDependencies": {
+		"@crxjs/vite-plugin": "^2.0.0-beta.27",
+		"@types/chrome": "^0.0.287",
+		"typescript": "^5.8.0",
+		"vite": "^5.4.0"
+	}
+}
