@@ -23,8 +23,9 @@
 | Wealth Tier | select | normalized curator wealth_tier |
 | Priority | select | normalized curator priority |
 | Conference / Trigger | select | curator `event.name` |
+| Est. GMV | number | curator `gmv_usd` |
 
-All other CRM columns (Contact Name, Email, Notes, GMV, etc.) are human-only and never touched by the tool.
+All other CRM columns (Contact Name, Email, Notes, etc.) are human-only and never touched by the tool.
 
 **Environment variables (`.env`):**
 

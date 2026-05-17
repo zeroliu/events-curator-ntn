@@ -16,6 +16,7 @@ const INDUSTRY_COL = "Industry";
 const WEALTH_TIER_COL = "Wealth Tier";
 const PRIORITY_COL = "Priority";
 const CONFERENCE_COL = "Conference / Trigger";
+const GMV_COL = "Est. GMV";
 
 export type NotionClient = CapabilityContext["notion"];
 
@@ -78,6 +79,7 @@ function curatorMappedValues(
 	const priority = normalizePriorityName(c.priority);
 	if (priority) out[PRIORITY_COL] = { select: { name: priority } };
 	if (event.name) out[CONFERENCE_COL] = { select: { name: event.name } };
+	if (c.gmv_usd != null) out[GMV_COL] = { number: c.gmv_usd };
 	return out;
 }
 

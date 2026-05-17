@@ -34,6 +34,9 @@ export type Company = {
 	notes_appendix: string | null;
 	extraction_confidence: string | null;
 	source_url: string | null;
+	gmv_usd: number | null;
+	gmv_confidence: "high" | "medium" | "low" | null;
+	gmv_note: string | null;
 	updated_at: string;
 };
 
